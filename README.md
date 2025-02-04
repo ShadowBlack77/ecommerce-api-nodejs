@@ -11,3 +11,6 @@
 - npx tsc -init
 - npm i -D @tsconfig/node23
 - npm i -D ts-node
+
+## App config:
+- Insert your data to .env file
