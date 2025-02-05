@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import Product from '../models/product.model';
 import cloudinary from "../lib/cloudinary.lib";
+import redisClient from '../lib/redis.lib';
 
 export class ProductController {
 
@@ -16,22 +17,21 @@ export class ProductController {
 
   public async getFeaturedProducts(req: Request, res: Response): Promise<any> {
     try {
-      // let featuredProducts = await redis.get("featured_products");
-      // if (featuredProducts) {
-      //   return res.json(JSON.parse(featuredProducts));
-      // }
+      let featuredProducts: any = await redisClient.get("featured_products");
+      
+      if (featuredProducts) {
+        return res.status(200).json(JSON.parse(featuredProducts));
+      }
   
-      // featuredProducts = await Product.find({ isFeatured: true }).lean();
+      featuredProducts = await Product.find({ isFeatured: true }).lean();
   
-      // if (!featuredProducts) {
-      //   return res.status(404).json({ message: "No featured products found" });
-      // }
+      if (!featuredProducts) {
+        return res.status(404).json({ message: "No featured products found" });
+      }
   
-      // // store in redis for future quick access
+      await redisClient.set("featured_products", JSON.stringify(featuredProducts));
   
-      // await redis.set("featured_products", JSON.stringify(featuredProducts));
-  
-      // res.json(featuredProducts);
+      res.json(featuredProducts);
     } catch (error: any) {
       res.status(500).json({ content: "Server error", error: error.message });
     }
@@ -40,8 +40,8 @@ export class ProductController {
   public async createProduct(req: Request, res: Response): Promise<any> {
     try {
       const { name, description, price, image, category } = req.body;
-  
-      let cloudinaryResponse = null;
+
+      let cloudinaryResponse: any = null;
   
       if (image) {
         cloudinaryResponse = await cloudinary.uploader.upload(image, { folder: "products" });
@@ -124,6 +124,7 @@ export class ProductController {
   public async toggleFeaturedProduct(req: Request, res: Response): Promise<any> {
     try {
       const product: any = await Product.findById(req.params.id);
+      
       if (product) {
         product.isFeatured = !product.isFeatured;
         const updatedProduct = await product.save();
@@ -140,7 +141,7 @@ export class ProductController {
   private async updateFeaturedProductsCache(): Promise<any> {
     try {
       const featuredProducts = await Product.find({ isFeatured: true }).lean();
-      // await redis.set("featured_products", JSON.stringify(featuredProducts));
+      await redisClient.set("featured_products", JSON.stringify(featuredProducts));
     } catch (error: any) {
       console.log("error in update cache function");
     }

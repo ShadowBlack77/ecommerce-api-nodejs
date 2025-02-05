@@ -1,6 +1,7 @@
 import jwt from 'jsonwebtoken';
 import { Request, Response } from 'express';
 import User from '../models/user.model';
+import redisClient from '../lib/redis.lib';
 
 export class AuthController {
 
@@ -60,9 +61,10 @@ export class AuthController {
   public async logout(req: Request, res: Response) {
     try {
       const refreshToken = req.cookies.refreshToken;
+
       if (refreshToken) {
-        const decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET!);
-        // await redis.del(`refresh_token:${decoded.userId}`);
+        const decoded: any = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET!);
+        await redisClient.del(`refresh_token:${decoded.userId}`)
       }
   
       res.clearCookie("accessToken");
@@ -82,11 +84,11 @@ export class AuthController {
       }
   
       const decoded: any = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET!);
-      // const storedToken = await redis.get(`refresh_token:${decoded.userId}`);
+      const storedToken = await redisClient.get(`refresh_token:${decoded.userId}`);
   
-      // if (storedToken !== refreshToken) {
-      //   return res.status(401).json({ content: "Invalid refresh token" });
-      // }
+      if (storedToken !== refreshToken) {
+        return res.status(401).json({ content: "Invalid refresh token" });
+      }
   
       const accessToken = jwt.sign({ userId: decoded.userId }, process.env.ACCESS_TOKEN_SECRET!, { expiresIn: "15m" });
   
@@ -124,7 +126,9 @@ export class AuthController {
   }
 
   private async storeRefreshToken(userId: any, refreshToken: string) {
-    // await redis.set(`refresh_token:${userId}`, refreshToken, "EX", 7 * 24 * 60 * 60);
+    await redisClient.set(`refresh_token:${userId}`, refreshToken, {
+      EX: 7 * 24 * 60 * 60
+    });
   }
 
   private setCookies (res: Response, accessToken: string, refreshToken: string) {

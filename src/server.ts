@@ -1,6 +1,7 @@
 import express from 'express';
 import dotenv from 'dotenv';
 import cookieParser from "cookie-parser";
+import cors from 'cors';
 
 import productRoutes from './routes/product.routes';
 import authRoutes from './routes/auth.routes';
@@ -9,11 +10,19 @@ import couponRoutes from './routes/coupon.routes';
 import paymentRoutes from './routes/payment.routes';
 
 import { connectDB } from './lib/db.lib';
+import redisClient from './lib/redis.lib';
 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 8080;
+
+app.use(cors({
+  origin: 'http://localhost:5173',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+  allowedHeaders: ['Content-Type'],
+  credentials: true
+}));
 
 app.use(express.json({ limit: '10mb' }));
 app.use(cookieParser());
@@ -21,10 +30,11 @@ app.use(cookieParser());
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/products', productRoutes);
 app.use('/api/v1/cart', cartRoutes);
-app.use('/api/v1/coupon', couponRoutes);
+app.use('/api/v1/coupons', couponRoutes);
 app.use('/api/v1/payments', paymentRoutes);
 
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
   console.log(`Server work on http://localhost:${PORT}`);
   connectDB();
+  redisClient.connect();
 });
