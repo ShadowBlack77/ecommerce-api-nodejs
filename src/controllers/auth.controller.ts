@@ -44,7 +44,7 @@ export class AuthController {
         await this.storeRefreshToken(user._id, refreshToken);
         this.setCookies(res, accessToken, refreshToken);
   
-        res.json({
+        res.status(200).json({
           _id: user._id,
           name: user.name,
           email: user.email,
@@ -105,9 +105,9 @@ export class AuthController {
     }
   }
 
-  public async getProfile(req: Request | any, res: Response) {
+  public async getProfile(req: Request | any, res: Response): Promise<any> {
     try {
-      res.json(req.user);
+      return res.status(200).json({ user: req.user });
     } catch (error: any) {
       res.status(500).json({ content: "Server error", error: error.message });
     }
@@ -122,7 +122,7 @@ export class AuthController {
       expiresIn: "7d",
     });
 
-    return { refreshToken, accessToken };
+    return { accessToken, refreshToken };
   }
 
   private async storeRefreshToken(userId: any, refreshToken: string) {
