@@ -28,7 +28,7 @@ export class CouponController {
         return res.status(404).json({ content: "Coupon expired" });
       }
 
-      res.json({
+      res.status(200).json({
         content: "Coupon is valid",
         code: coupon.code,
         discountPercentage: coupon.discountPercentage,
